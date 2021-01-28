@@ -4,7 +4,17 @@
 #include <map>
 #include <mutex>
 #include <queue>
+#include <cstring>
+#include <fstream>
+#ifdef _WIN32
 #include <Windows.h>
+#else
+#include <dlfcn.h>
+#include <unistd.h>
+#define BOOL int32_t
+#define FALSE 0
+#define TRUE 1
+#endif
 #include "org_itxtech_mirainative_Bridge.h"
 #include "native.h"
 
@@ -14,7 +24,11 @@ struct native_plugin
 {
 	int id;
 	const char* file;
+#ifdef _WIN32
 	HMODULE dll;
+#else
+	void* dll;
+#endif
 	bool enabled;
 
 	native_plugin()
@@ -99,9 +113,17 @@ jbyteArray CharsToByteArray(JNIEnv* env, const char* str)
 	return arr;
 }
 
+#ifdef _WIN32
 FARPROC GetMethod(JNIEnv* env, jint id, jbyteArray method)
+#else
+void* GetMethod(JNIEnv* env, jint id, jbyteArray method)
+#endif
 {
+#ifdef _WIN32
 	return GetProcAddress(plugins[id].dll, ByteArrayToString(env, method).c_str());
+#else
+	return dlsym(plugins[id].dll, ByteArrayToString(env, method).c_str());
+#endif
 }
 
 // Load
@@ -155,7 +177,11 @@ JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_shutdown(JNIEnv* env,
 
 JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_setCurrentDirectory(JNIEnv* env, jclass clz, jbyteArray dir)
 {
+#ifdef _WIN32
 	SetCurrentDirectoryA(ByteArrayToString(env, dir).c_str());
+#else
+	chdir(ByteArrayToString(env, dir).c_str());
+#endif
 	return 0;
 }
 
@@ -165,14 +191,22 @@ JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_loadNativePlugin(
 	JNIEnv* env, jclass clz, jbyteArray file, jint id)
 {
 	native_plugin plugin = {id, const_cast<char*>(ByteArrayToChars(env, file))};
+#ifdef _WIN32
 	const auto dll = LoadLibraryA(plugin.file);
+#else
+	const auto dll = dlopen(plugin.file, RTLD_LAZY);
+#endif
 
 	if (dll != nullptr)
 	{
 		plugin.dll = dll;
 		plugins[id] = plugin;
 
+#ifdef _WIN32
 		const auto init = FuncInitialize(GetProcAddress(dll, "Initialize"));
+#else
+		const auto init = FuncInitialize(dlsym(dll, "Initialize"));
+#endif
 		if (init)
 		{
 			init(plugin.id);
@@ -180,29 +214,43 @@ JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_loadNativePlugin(
 
 		return 0;
 	}
+#ifdef _WIN32
 	return GetLastError();
+#else
+	return dlerror() == nullptr ? 0 : -1;
+#endif
 }
 
 JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_freeNativePlugin(
 	JNIEnv* env, jclass clz, jint id)
 {
+#ifdef _WIN32
 	auto r = FreeLibrary(plugins[id].dll);
+#else
+	auto r = dlclose(plugins[id].dll);
+#endif
 	free((void*)plugins[id].file);
 	if (r != FALSE)
 	{
 		return 0;
 	}
+#ifdef _WIN32
 	return GetLastError();
+#else
+	return dlerror() == nullptr ? 0 : -1;
+#endif
 }
 
 JNIEXPORT void JNICALL Java_org_itxtech_mirainative_Bridge_processMessage(JNIEnv* env, jclass clz)
 {
+#ifdef _WIN32
 	MSG msg;
 	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE) > 0)
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
+#endif
 }
 
 JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_callIntMethod(

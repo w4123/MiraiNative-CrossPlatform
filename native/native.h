@@ -1,7 +1,9 @@
 #pragma once
+#ifndef _WIN32
+#define __stdcall
+#endif 
 
-#define CQAPI(ReturnType, Name, Size) __pragma(comment(linker, "/EXPORT:" #Name "=_" #Name "@" #Size))\
- extern "C" __declspec(dllexport) ReturnType __stdcall Name
+#define CQAPI(ReturnType, Name, Size) extern "C" ReturnType __stdcall Name
 
 typedef int32_t (__stdcall* IntMethod)();
 typedef const char* (__stdcall* StringMethod)();
