@@ -48,14 +48,14 @@ import java.util.jar.Manifest
 object MiraiNative : KotlinPlugin(
     JvmPluginDescriptionBuilder("MiraiNative", "2.0.0-beta.1")
         .id("org.itxtech.mirainative")
-        .author("iTX Technologies")
+        .author("iTX Technologies & 溯洄")
         .info("强大的 mirai 原生插件加载器。")
         .build()
 ) {
     private val lib: File by lazy { File(dataFolder.absolutePath + File.separatorChar + "libraries").also { it.mkdirs() } }
     private val dll: File by lazy { File(dataFolder.absolutePath + File.separatorChar + "CQP.dll") }
-    val imageDataPath: File by lazy { File("data" + File.separatorChar + "image").also { it.mkdirs() } }
-    val recDataPath: File by lazy { File("data" + File.separatorChar + "record").also { it.mkdirs() } }
+    val imageDataPath: File by lazy { File(dataFolder.absolutePath + File.separatorChar + ".." + File.separatorChar + "data" + File.separatorChar + "image").also { it.mkdirs() } }
+    val recDataPath: File by lazy { File(dataFolder.absolutePath + File.separatorChar + ".." + File.separatorChar + "data" + File.separatorChar + "record").also { it.mkdirs() } }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val dispatcher = newSingleThreadContext("MiraiNative Main") + SupervisorJob()
@@ -96,14 +96,48 @@ object MiraiNative : KotlinPlugin(
     }
 
     override fun PluginComponentStorage.onLoad() {
-        //暂时只支持 x86 平台运行，不兼容 amd64
-        val mode = System.getProperty("sun.arch.data.model")
-        if (mode != "32") {
-            logger.warning("当前运行环境 $mode 可能不与 Mirai Native 兼容，推荐使用 32位 JRE 运行 Mirai Native。")
+        val arch = System.getProperty("os.arch")
+        val name = System.getProperty("os.name")
+        var rscName = "CQP."
+        logger.info("当前系统: $name, 当前架构: $arch")
+        try {
+            Class.forName("android.os.SystemProperties");
+            rscName += "android"
+            logger.info("检测到Android系统")
+        } catch(e : ClassNotFoundException) {
+            if (name.indexOf("win") >= 0 || name.indexOf("Win") >= 0) {
+                rscName += "windows"
+            } else if (name.indexOf("mac") >= 0 || name.indexOf("Mac") >= 0) {
+                rscName += "macos"
+            } else if (name.indexOf("linux") >= 0 || name.indexOf("Linux") >= 0) {
+                rscName += "linux"
+            } else {
+                rscName += name
+            }
+        }
+        rscName += "."
+        rscName += when (arch) {
+            "i386" -> "i386"
+            "i686" -> "i386"
+            "x86" -> "i386"
+            "x86_64" -> "amd64"
+            "x64" -> "amd64"
+            "amd64" -> "amd64"
+            "arm" -> "arm"
+            "arm64" -> "aarch64"
+            "aarch64" -> "aarch64"
+            else -> arch
+        }
+        rscName += ".dll"
+
+        var nativeLib = getResourceAsStream("CQP.windows.i386.dll")!!;
+        try {
+            nativeLib = getResourceAsStream(rscName)!!
+        } catch(e : NullPointerException) {
+            logger.warning("当前运行时环境可能不与 Mirai Native 兼容。")
             logger.warning("如果您正在开发或调试其他环境下的 Mirai Native，请忽略此警告。")
         }
 
-        val nativeLib = getResourceAsStream("CQP.dll")!!
         if (!dll.exists()) {
             logger.error("找不到 ${dll.absolutePath}，写出自带的 CQP.dll。")
             val cqp = FileOutputStream(dll)
@@ -117,14 +151,11 @@ object MiraiNative : KotlinPlugin(
         initDataDir()
     }
 
-    private fun libPath(d: String) = System.getProperty("java.library.path")
-        .substringBefore(";") + File.separatorChar + "data" + File.separatorChar + d
-
     private fun File.mkdirsOrExists() = if (exists()) true else mkdirs()
 
     private fun initDataDir() {
-        if (!File(libPath("image")).mkdirsOrExists() || !File(libPath("record")).mkdirsOrExists()) {
-            logger.warning("图片或语音文件夹创建失败，可能没有使用管理员权限运行。位置：${libPath("")}")
+        if (!imageDataPath.mkdirsOrExists() || !recDataPath.mkdirsOrExists()) {
+            logger.warning("图片或语音文件夹创建失败，可能没有使用管理员权限运行。位置：$imageDataPath 与 $recDataPath")
         }
         File(imageDataPath, "MIRAI_NATIVE_IMAGE_DATA").createNewFile()
         File(recDataPath, "MIRAI_NATIVE_RECORD_DATA").createNewFile()
@@ -137,7 +168,6 @@ object MiraiNative : KotlinPlugin(
         }
         arrayOf(
             "data" + File.separatorChar + type + File.separatorChar,
-            libPath(type) + File.separatorChar,
             ""
         ).forEach {
             val f = File(it + name).absoluteFile
