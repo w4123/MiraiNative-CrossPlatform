@@ -25,6 +25,8 @@
 package org.itxtech.mirainative.bridge
 
 import io.ktor.client.*
+import io.ktor.client.engine.okhttp.*
+import io.ktor.client.features.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -35,16 +37,13 @@ import io.ktor.utils.io.core.*
 import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import net.mamoe.mirai.contact.Member
-import net.mamoe.mirai.contact.MemberPermission
+import net.mamoe.mirai.Mirai
+import net.mamoe.mirai.contact.NormalMember
 import net.mamoe.mirai.event.events.BotInvitedJoinGroupRequestEvent
 import net.mamoe.mirai.event.events.MemberJoinRequestEvent
 import net.mamoe.mirai.event.events.NewFriendRequestEvent
 import net.mamoe.mirai.message.data.Image
 import net.mamoe.mirai.message.data.Image.Key.queryUrl
-import net.mamoe.mirai.message.data.MessageSource.Key.quote
-import net.mamoe.mirai.message.data.MessageSourceKind
-import net.mamoe.mirai.message.data.kind
 import net.mamoe.mirai.utils.MiraiExperimentalApi
 import org.itxtech.mirainative.Bridge
 import org.itxtech.mirainative.MiraiNative
@@ -67,7 +66,26 @@ import kotlin.text.toByteArray
 
 @OptIn(InternalAPI::class, MiraiExperimentalApi::class)
 object MiraiBridge {
-    private fun logError(id: Int, e: String, err: Exception? = null) {
+    val client = HttpClient(OkHttp) {
+        install(UserAgent) {
+            agent =
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.146 Safari/537.36"
+        }
+
+        install(HttpTimeout) {
+            connectTimeoutMillis = 10000
+            requestTimeoutMillis = 60000
+            socketTimeoutMillis = 60000
+        }
+
+        engine {
+            config {
+                retryOnConnectionFailure(true)
+            }
+        }
+    }
+
+    fun logError(id: Int, e: String, err: Exception? = null) {
         val plugin = PluginManager.plugins[id]
         val info = if (plugin == null) {
             e.replace("%0", "$id（未找到该插件）")
@@ -81,7 +99,7 @@ object MiraiBridge {
         }
     }
 
-    private fun verifyCall(pluginId: Int): Boolean {
+    fun verifyCall(pluginId: Int): Boolean {
         if (MiraiNative.botOnline) {
             return true
         }
@@ -89,7 +107,7 @@ object MiraiBridge {
         return false
     }
 
-    private inline fun <reified T> call(
+    inline fun <reified T> call(
         exportName: String,
         pluginId: Int,
         defaultValue: T,
@@ -108,33 +126,6 @@ object MiraiBridge {
             }
         }
         return defaultValue
-    }
-
-    fun quoteMessage(pluginId: Int, msgId: Int, message: String) = call("mQuoteMessage", pluginId, 0) {
-        val internalId = CacheManager.nextId()
-        MiraiNative.launch {
-            val src = CacheManager.getMessage(msgId)
-            if (src != null) {
-                if (src.kind != MessageSourceKind.GROUP) {
-                    if (src.fromId != MiraiNative.bot.id) {
-                        val f = MiraiNative.bot.getFriend(src.fromId)
-                        val chain = src.quote() + ChainCodeConverter.codeToChain(message, f)
-                        f?.sendMessage(chain)?.apply {
-                            CacheManager.cacheMessage(source, internalId, chain)
-                        }
-                    }
-                } else {
-                    val group = MiraiNative.bot.getGroup(src.targetId)
-                    if (src.fromId != MiraiNative.bot.id) {
-                        val chain = src.quote() + ChainCodeConverter.codeToChain(message, group)
-                        group?.sendMessage(chain)?.apply {
-                            CacheManager.cacheMessage(source, internalId, chain)
-                        }
-                    }
-                }
-            }
-        }
-        return internalId
     }
 
     fun sendPrivateMessage(pluginId: Int, id: Long, message: String) = call("CQ_sendPrivateMsg", pluginId, 0) {
@@ -179,14 +170,6 @@ object MiraiBridge {
             return 0
         }
 
-    fun setGroupKick(pluginId: Int, groupId: Long, memberId: Long) = call("CQ_setGroupKick", pluginId, 0) {
-        MiraiNative.launch {
-            //TODO: kick message
-            MiraiNative.bot.getGroup(groupId)?.get(memberId)?.kick("")
-        }
-        return 0
-    }
-
     fun setGroupLeave(pluginId: Int, groupId: Long) = call("CQ_setGroupLeave", pluginId, 0) {
         MiraiNative.launch {
             MiraiNative.bot.getGroup(groupId)?.quit()
@@ -206,13 +189,18 @@ object MiraiBridge {
     }
 
     fun getStrangerInfo(pluginId: Int, account: Long) = call("CQ_getStrangerInfo", pluginId, "") {
-        val m = CacheManager.findUser(account) ?: return ""
-        return buildPacket {
-            writeLong(m.id)
-            writeString(m.nick)
-            writeInt(0) // TODO: 性别
-            writeInt(0) // TODO: 年龄
-        }.encodeBase64()
+        return@call runBlocking {
+            val profile = Mirai.queryProfile(MiraiNative.bot, account)
+            return@runBlocking buildPacket {
+                writeLong(account)
+                writeString(profile.nickname)
+                writeInt(profile.sex.ordinal)
+                writeInt(profile.age)
+                writeInt(profile.qLevel)
+                writeString(profile.email)
+                writeString(profile.sign)
+            }.encodeBase64()
+        }
     }
 
     fun getFriendList(pluginId: Int) = call("CQ_getFriendList", pluginId, "") {
@@ -258,21 +246,25 @@ object MiraiBridge {
     fun getGroupMemberInfo(pluginId: Int, groupId: Long, memberId: Long) =
         call("CQ_getGroupMemberInfoV2", pluginId, "") {
             val member = MiraiNative.bot.getGroup(groupId)?.get(memberId) ?: return ""
-            return buildPacket {
-                writeMember(member)
-            }.encodeBase64()
+            return@call runBlocking {
+                return@runBlocking buildPacket {
+                    writeMember(member)
+                }.encodeBase64()
+            }
         }
 
     fun getGroupMemberList(pluginId: Int, groupId: Long) = call("CQ_getGroupMemberList", pluginId, "") {
         val group = MiraiNative.bot.getGroup(groupId) ?: return ""
-        return buildPacket {
-            writeInt(group.members.size)
-            group.members.forEach {
-                writeShortLVPacket {
-                    writeMember(it)
+        return@call runBlocking {
+            return@runBlocking buildPacket {
+                writeInt(group.members.size)
+                group.members.forEach {
+                    writeShortLVPacket {
+                        writeMember(it)
+                    }
                 }
-            }
-        }.encodeBase64()
+            }.encodeBase64()
+        }
     }
 
     fun setGroupAddRequest(pluginId: Int, requestId: String, reqType: Int, type: Int, reason: String) =
@@ -321,11 +313,10 @@ object MiraiBridge {
 
     fun getImage(pluginId: Int, image: String): String =
         call("CQ_getImage", pluginId, "", "Error occurred when plugin %0 downloading image $image") {
-            return runBlocking {
+            return@call runBlocking {
                 val img = image.replace(".mnimg", "")
                 val u = Image(img).queryUrl()
                 if (u != "") {
-                    val client = HttpClient()
                     val response = client.get<HttpResponse>(u)
                     if (response.status.isSuccess()) {
                         val md = MessageDigest.getInstance("MD5")
@@ -360,7 +351,6 @@ object MiraiBridge {
                                     .padStart(32, '0') + ".silk"
                     )
                     if (rec.url != null) {
-                        val client = HttpClient()
                         val response = client.get<HttpResponse>(rec.url!!)
                         if (response.status.isSuccess()) {
                             response.content.copyAndClose(file.writeChannel())
@@ -395,16 +385,6 @@ object MiraiBridge {
     fun getLoginNick(pluginId: Int) = call("CQ_getLoginNick", pluginId, "") {
         return MiraiNative.bot.nick
     }
-
-    fun forwardMessage(pluginId: Int, type: Int, id: Long, strategy: String, msg: String) =
-        call("mForwardMessage", pluginId, 0) {
-            val contact = if (type == 0) MiraiNative.bot.getFriend(id) else MiraiNative.bot.getGroup(id)
-            val internalId = CacheManager.nextId()
-            MiraiNative.launch {
-                contact?.sendMessage(ForwardMessageDecoder.decode(contact, strategy, msg))
-            }
-            return internalId
-        }
 
     fun recallMessage(pluginId: Int, id: Long) = call("CQ_deleteMsg", pluginId, -1) {
         return if (CacheManager.recall(id.toInt())) 0 else -1
@@ -444,28 +424,23 @@ object MiraiBridge {
         writeInt(if (bool) 1 else 0)
     }
 
-    private fun BytePacketBuilder.writeMember(member: Member) {
+    private suspend fun BytePacketBuilder.writeMember(member: NormalMember) {
+        val profile = member.queryProfile()
         writeLong(member.group.id)
         writeLong(member.id)
         writeString(member.nick)
         writeString(member.nameCard)
-        writeInt(0) // TODO: 性别
-        writeInt(0) // TODO: 年龄
+        writeInt(profile.sex.ordinal)
+        writeInt(profile.age)
         writeString("未知") // TODO: 地区
-        writeInt(0) // TODO: 加群时间
-        writeInt(0) // TODO: 最后发言
+        writeInt(member.joinTimestamp)
+        writeInt(member.lastSpeakTimestamp)
         writeString("") // TODO: 等级名称
-        writeInt(
-            when (member.permission) {
-                MemberPermission.MEMBER -> 1
-                MemberPermission.ADMINISTRATOR -> 2
-                MemberPermission.OWNER -> 3
-            }
-        )
+        writeInt(member.permission.ordinal)
         writeBool(false) // TODO: 不良记录成员
         writeString(member.specialTitle)
         writeInt(-1) // TODO: 头衔过期时间
-        writeBool(true) // TODO: 允许修改名片
+        writeBool(false) // TODO: 允许修改名片
     }
 }
 
