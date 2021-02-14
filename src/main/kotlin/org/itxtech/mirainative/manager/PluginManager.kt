@@ -34,6 +34,7 @@ import net.mamoe.mirai.console.command.CompositeCommand
 import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import org.itxtech.mirainative.Bridge
 import org.itxtech.mirainative.MiraiNative
+import org.itxtech.mirainative.MiraiNative.pl
 import org.itxtech.mirainative.bridge.NativeBridge
 import org.itxtech.mirainative.plugin.NativePlugin
 import org.itxtech.mirainative.plugin.PluginInfo
@@ -42,10 +43,10 @@ import org.itxtech.mirainative.ui.Tray
 import org.itxtech.mirainative.util.NpmHelper
 import java.io.File
 
+
 object PluginManager {
     private val pluginId = atomic(0)
     val plugins = hashMapOf<Int, NativePlugin>()
-    private val pl: File by lazy { File(MiraiNative.dataFolder.absolutePath + File.separatorChar + "plugins").also { it.mkdirs() } }
 
     fun loadPlugins() {
         if (!MiraiNative.dataFolder.isDirectory) {

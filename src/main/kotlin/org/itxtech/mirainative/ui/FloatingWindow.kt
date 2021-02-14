@@ -82,7 +82,7 @@ object FloatingWindow {
                 }
             }
         } catch (e: Throwable) {
-            MiraiNative.logger.error(e)
+            MiraiNative.logger.warning(e.toString())
         }
     }
 
