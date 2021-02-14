@@ -6,6 +6,7 @@
 #include <queue>
 #include <cstring>
 #include <fstream>
+#include <vector>
 #ifdef _WIN32
 #include <Windows.h>
 #else
@@ -170,13 +171,33 @@ void detach_java()
 	jvm->DetachCurrentThread();
 }
 
+
 // Utilities
+
+#ifndef _WIN32
+std::vector<void*> vec_handles;
+#endif
+
+JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_exportGlobalSymbol(JNIEnv* env, jclass clz, jbyteArray file)
+{
+#ifndef _WIN32
+	vec_handles.push_back(dlopen(ByteArrayToString(env, file).c_str(), RTLD_LAZY | RTLD_GLOBAL));
+#endif
+	return 0;
+}
 
 JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_shutdown(JNIEnv* env, jclass clz)
 {
 	env->DeleteGlobalRef(bclz);
 	running = false;
 	mem_thread.join();
+#ifndef _WIN32
+	for (const auto& handle : vec_handles)
+	{
+		dlclose(handle);
+	}
+	vec_handles.clear();
+#endif
 	return 0;
 }
 

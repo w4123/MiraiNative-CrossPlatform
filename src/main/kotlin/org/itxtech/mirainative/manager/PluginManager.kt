@@ -203,6 +203,7 @@ object PluginManager {
     fun enablePlugins() {
         MiraiNative.nativeLaunch {
             plugins.values.forEach {
+                MiraiNative.logger.info(it.file.absolutePath)
                 if (it.autoEnable) {
                     enablePlugin(it)
                 }

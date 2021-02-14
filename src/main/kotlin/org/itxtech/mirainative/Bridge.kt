@@ -58,6 +58,9 @@ object Bridge {
     // Native
 
     @JvmStatic
+    external fun exportGlobalSymbol(file: ByteArray): Int
+
+    @JvmStatic
     external fun shutdown(): Int
 
     @JvmStatic

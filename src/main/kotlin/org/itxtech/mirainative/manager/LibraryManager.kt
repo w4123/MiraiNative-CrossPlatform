@@ -24,6 +24,9 @@
 
 package org.itxtech.mirainative.manager
 
+import org.itxtech.mirainative.Bridge
+import org.itxtech.mirainative.toNative
+
 object LibraryManager {
     private val libs = arrayListOf<String>()
 
@@ -31,6 +34,7 @@ object LibraryManager {
         if (!libs.contains(file)) {
             libs.add(file)
             System.load(file)
+            Bridge.exportGlobalSymbol(file.toNative())
         }
     }
 }
