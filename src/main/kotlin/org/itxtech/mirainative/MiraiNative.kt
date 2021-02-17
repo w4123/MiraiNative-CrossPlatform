@@ -104,7 +104,10 @@ object MiraiNative : KotlinPlugin(
 
         @OptIn(ObsoleteCoroutinesApi::class)
         val eventDispatcher =
-            newFixedThreadPoolContext(Runtime.getRuntime().availableProcessors() * 2, "MiraiNative Events")
+            newFixedThreadPoolContext(when {
+                Runtime.getRuntime().availableProcessors() == 0 -> 4
+                else -> Runtime.getRuntime().availableProcessors()
+            } * 2, "MiraiNative Events")
 
         var botOnline = false
         val bot: Bot by lazy { Bot.instances.first() }
