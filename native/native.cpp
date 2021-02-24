@@ -439,8 +439,30 @@ CQAPI(int32_t, mSetGroupKick, 28)(int32_t plugin_id, int64_t group, int64_t memb
 	auto m = CharsToByteArray(env, msg);
 	auto method = env->GetStaticMethodID(bclz, "setGroupKick", "(IJJZ[B)I");
 	auto result = env->CallStaticIntMethod(bclz, method, plugin_id, group, member, reject != FALSE, msg);
-	if (need_detach) detach_java();
 	env->DeleteLocalRef(m);
+	if (need_detach) detach_java();
+	return result;
+}
+
+CQAPI(const char*, mGetGroupEntranceAnnouncement, 12)(int32_t plugin_id, int64_t group)
+{
+	auto [env, need_detach] = attach_java();
+	auto method = env->GetStaticMethodID(bclz, "getGroupEntranceAnnouncement", "(IJ)[B");
+	auto result = jbyteArray(env->CallStaticObjectMethod(bclz, method, plugin_id, group));
+	auto r = ByteArrayToChars(env, result);
+	env->DeleteLocalRef(result);
+	if (need_detach) detach_java();
+	return delay_mem_free(r);
+}
+
+CQAPI(int32_t, mSetGroupEntranceAnnouncement, 16)(int32_t plugin_id, int64_t group, const char* a)
+{
+	auto env = attach_java();
+	auto an = CharsToByteArray(env, a);
+	auto method = env->GetStaticMethodID(bclz, "setGroupEntranceAnnouncement", "(IJ[B)I");
+	auto result = env->CallStaticIntMethod(bclz, method, plugin_id, group, an);
+	env->DeleteLocalRef(an);
+	if (need_detach) detach_java();
 	return result;
 }
 
