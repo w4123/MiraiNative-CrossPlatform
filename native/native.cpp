@@ -457,7 +457,7 @@ CQAPI(const char*, mGetGroupEntranceAnnouncement, 12)(int32_t plugin_id, int64_t
 
 CQAPI(int32_t, mSetGroupEntranceAnnouncement, 16)(int32_t plugin_id, int64_t group, const char* a)
 {
-	auto env = attach_java();
+	auto [env, need_detach] = attach_java();
 	auto an = CharsToByteArray(env, a);
 	auto method = env->GetStaticMethodID(bclz, "setGroupEntranceAnnouncement", "(IJ[B)I");
 	auto result = env->CallStaticIntMethod(bclz, method, plugin_id, group, an);

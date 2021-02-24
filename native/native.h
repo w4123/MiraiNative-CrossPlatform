@@ -3,7 +3,21 @@
 #define __stdcall
 #endif 
 
-#define CQAPI(ReturnType, Name, Size) extern "C" ReturnType __stdcall Name
+#if (defined _WIN32 && !defined _WIN64)
+#ifdef _MSC_VER
+#define CQAPI(ReturnType, Name, Size) __pragma(comment(linker, "/EXPORT:" #Name "=_" #Name "@" #Size)) extern "C" __declspec(dllexport) ReturnType __stdcall Name
+#else
+#define CQAPI(ReturnType, Name, Size) extern "C" __attribute__((dllexport)) ReturnType __attribute__((__stdcall__)) Name
+#endif
+#elif defined _WIN64
+#ifdef _MSC_VER
+#define CQAPI(ReturnType, Name, Size) extern "C" __declspec(dllexport) ReturnType Name
+#else
+#define CQAPI(ReturnType, Name, Size) extern "C" __attribute__((dllexport)) ReturnType Name
+#endif
+#else
+#define CQAPI(ReturnType, Name, Size) extern "C" __attribute__((visibility ("default"))) ReturnType Name
+#endif
 
 typedef int32_t (__stdcall* IntMethod)();
 typedef const char* (__stdcall* StringMethod)();

@@ -25,6 +25,7 @@
 package org.itxtech.mirainative.manager
 
 import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.update
 import kotlinx.coroutines.launch
 import net.mamoe.mirai.contact.AnonymousMember
 import net.mamoe.mirai.contact.NormalMember
@@ -39,6 +40,7 @@ import net.mamoe.mirai.message.data.Voice
 import net.mamoe.mirai.message.data.source
 import net.mamoe.mirai.utils.MiraiExperimentalApi
 import org.itxtech.mirainative.MiraiNative
+import java.time.Instant
 
 @OptIn(MiraiExperimentalApi::class)
 object CacheManager {
@@ -48,6 +50,7 @@ object CacheManager {
     private val anonymousMembers = hashMapOf<Long, HashMap<String, AnonymousMember>>()
     private val records = hashMapOf<String, Voice>()
     private val internalId = atomic(0)
+    private val internalClearCacheId = atomic(0)
 
     fun nextId() = internalId.getAndIncrement()
 
@@ -56,6 +59,17 @@ object CacheManager {
     fun getEvent(id: String) = evCache[id.toInt()]?.also { evCache.remove(id.toInt()) }
 
     fun cacheMessage(source: MessageSource, id: Int = nextId(), chain: MessageChain? = null): Int {
+        var currClearCacheId = internalClearCacheId.value
+        while (currClearCacheId < id) {
+            val sendTime = msgCache[currClearCacheId]?.time
+            if (sendTime != null) {
+                if (Instant.now().epochSecond - sendTime > 3600) {
+                    msgCache.remove(currClearCacheId)
+                } else break;
+            }
+            currClearCacheId++
+        }
+        internalClearCacheId.update{currClearCacheId}
         msgCache[id] = source
         chain?.forEach {
             if (it is Voice) {
