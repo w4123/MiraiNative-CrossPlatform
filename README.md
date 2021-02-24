@@ -1,3 +1,21 @@
+# Mirai Native Cross Platform
+
+__强大的跨平台 `mirai` 原生插件加载器__
+
+Mirai Native Cross Platform 可以在Windows, Linux, Android和MacOS上允许native插件与[mirai](https://github.com/mamoe/mirai) 交互。
+
+请注意，插件必须被**重新编译**到对应架构和系统才可以被正常加载。
+
+当前版本支持的具体架构请查看[Releases](https://github.com/w4123/MiraiNative-CrossPlatform/releases)。
+
+## 重新编译提示
+
+在Linux, Android和MacOS上，你不需要链接到CQP.dll，因为CQP.dll中的符号会在运行时被动态解析。因此，编译后的文件存在Undefined Symbol是没有问题的(前提是这些符号在CQP.dll中存在)。在MacOS上，你可能编译时需要添加```-Wl,-undefined,dynamic_lookup```参数才能编译成功。
+
+以下为原Mirai-Native Readme
+
+------------
+
 # Mirai Native
 
 __强大的 `mirai` 原生插件加载器__
