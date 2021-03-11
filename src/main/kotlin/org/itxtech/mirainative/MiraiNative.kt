@@ -80,6 +80,8 @@ object MiraiNative : KotlinPlugin(
                 "macos"
             } else if (name.indexOf("linux") >= 0 || name.indexOf("Linux") >= 0) {
                 "linux"
+            } else if (name.indexOf("android") >= 0 || name.indexOf("Android") >= 0) {
+                "android"
             } else {
                 name
             }
