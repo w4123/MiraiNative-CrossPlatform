@@ -61,6 +61,7 @@ object MiraiNative : KotlinPlugin(
     private val lib: File by lazy { File(tmp.absolutePath + File.separatorChar + "libraries").also { it.mkdirs() } }
     private val dll: File by lazy { File(tmp.absolutePath + File.separatorChar + "CQP.dll") }
     val pl: File by lazy { File(tmp.absolutePath  + File.separatorChar + "plugins").also { it.mkdirs() } }
+    val plArc: File by lazy { File(pl.absolutePath + File.separatorChar + systemName + File.separatorChar + systemArch).also { it.mkdirs() } }
     private val Plib: File by lazy { File(dataFolder.absolutePath + File.separatorChar + "libraries").also { it.mkdirs() } }
     private val Pdll: File by lazy { File(dataFolder.absolutePath + File.separatorChar + "CQP.dll") }
     private val Ppl: File by lazy { File(dataFolder.absolutePath + File.separatorChar + "plugins").also { it.mkdirs() } }

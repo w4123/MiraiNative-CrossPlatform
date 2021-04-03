@@ -35,6 +35,7 @@ import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import org.itxtech.mirainative.Bridge
 import org.itxtech.mirainative.MiraiNative
 import org.itxtech.mirainative.MiraiNative.pl
+import org.itxtech.mirainative.MiraiNative.plArc
 import org.itxtech.mirainative.bridge.NativeBridge
 import org.itxtech.mirainative.plugin.NativePlugin
 import org.itxtech.mirainative.plugin.PluginInfo
@@ -54,6 +55,11 @@ object PluginManager {
         } else {
             MiraiNative.nativeLaunch {
                 pl.listFiles()?.forEach { file ->
+                    if (file.isFile && file.absolutePath.endsWith("dll") && !file.absolutePath.endsWith("CQP.dll")) {
+                        readPlugin(file)
+                    }
+                }
+                plArc.listFiles()?.forEach { file ->
                     if (file.isFile && file.absolutePath.endsWith("dll") && !file.absolutePath.endsWith("CQP.dll")) {
                         readPlugin(file)
                     }
