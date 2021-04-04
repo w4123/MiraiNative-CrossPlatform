@@ -99,7 +99,9 @@ object MiraiNative : KotlinPlugin(
             "x64" -> "amd64"
             "amd64" -> "amd64"
             "arm" -> "arm"
+            "armv7l" -> "arm"
             "arm64" -> "aarch64"
+            "armv8l" -> "aarch64"
             "aarch64" -> "aarch64"
             else -> arch
         }
