@@ -12,6 +12,13 @@ Mirai Native Cross Platform 可以在Windows, Linux, Android和MacOS上允许nat
 
 在Linux, Android和MacOS上，你不需要链接到CQP.dll，因为CQP.dll中的符号会在运行时被动态解析。因此，编译后的文件存在Undefined Symbol是没有问题的(前提是这些符号在CQP.dll中存在)。在MacOS上，你可能编译时需要添加```-Wl,-undefined,dynamic_lookup```参数才能编译成功。
 
+虽然正常来说应该叫so或者dylib文件，但是请重命名为以dll为后缀的文件，并放入plugins文件夹即可。
+
+## 其他提示
+
+此项目不包含MiraiAndroid支持，如果想在MiraiAndroid上使用请参考[MiraiNative-MiraiAndroid](https://github.com/w4123/MiraiNative-MiraiAndroid)
+
+
 以下为原Mirai-Native Readme
 
 ------------
