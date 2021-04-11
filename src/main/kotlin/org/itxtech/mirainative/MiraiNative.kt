@@ -193,6 +193,7 @@ object MiraiNative : KotlinPlugin(
             }
             arrayOf(
                 "data" + File.separatorChar + type + File.separatorChar,
+                dataFolder.absolutePath + File.separatorChar + ".." + File.separatorChar + type + File.separatorChar,
                 ""
             ).forEach {
                 val f = File(it + name).absoluteFile

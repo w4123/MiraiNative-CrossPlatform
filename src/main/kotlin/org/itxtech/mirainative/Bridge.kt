@@ -26,6 +26,7 @@
 
 package org.itxtech.mirainative
 
+import net.mamoe.mirai.console.MiraiConsole
 import org.itxtech.mirainative.bridge.MiraiBridge
 import org.itxtech.mirainative.bridge.MiraiImpl
 import java.nio.charset.Charset
@@ -52,8 +53,7 @@ object Bridge {
     const val GROUP_MUTE = 2
 
     // Helper
-
-    fun syncWorkingDir() = setCurrentDirectory(System.getProperty("user.dir").toNative())
+    fun syncWorkingDir() = setCurrentDirectory(MiraiConsole.rootPath.toAbsolutePath().toString().toNative())
 
     // Native
 

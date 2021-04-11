@@ -34,16 +34,14 @@ import java.io.File
 object ConfigMan {
     private val file = File(MiraiNative.dataFolder.absolutePath + File.separatorChar + "config.json")
     val config: Configuration by lazy {
-        if (file.exists()) {
+        runCatching {
             Json {
                 isLenient = true
                 ignoreUnknownKeys = true
                 allowSpecialFloatingPointValues = true
                 useArrayPolymorphism = true
             }.decodeFromString(Configuration.serializer(), file.readText())
-        } else {
-            Configuration()
-        }
+        }.getOrDefault(Configuration())
     }
 
     fun init() {
