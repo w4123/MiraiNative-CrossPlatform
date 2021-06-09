@@ -52,19 +52,10 @@ object MiraiNative : KotlinPlugin(
         .info("强大的 mirai 原生插件加载器。")
         .build()
 ) {
-    private val charPool: List<Char> = ('a'..'z') + ('A'..'Z') + ('0'..'9')
-    private val randomPath: String = (1..10)
-            .map { i -> kotlin.random.Random.nextInt(0, charPool.size) }
-            .map(charPool::get)
-            .joinToString("");
-    private val tmp: File by lazy { File(System.getProperty("java.io.tmpdir") + File.separatorChar + randomPath).also{ it.mkdirs() } }
-    private val lib: File by lazy { File(tmp.absolutePath + File.separatorChar + "libraries").also { it.mkdirs() } }
-    private val dll: File by lazy { File(tmp.absolutePath + File.separatorChar + "CQP.dll") }
-    val pl: File by lazy { File(tmp.absolutePath  + File.separatorChar + "plugins").also { it.mkdirs() } }
-    val plArc: File by lazy { File(pl.absolutePath + File.separatorChar + systemName + File.separatorChar + systemArch).also { it.mkdirs() } }
     private val Plib: File by lazy { File(dataFolder.absolutePath + File.separatorChar + "libraries").also { it.mkdirs() } }
     private val Pdll: File by lazy { File(dataFolder.absolutePath + File.separatorChar + "CQP.dll") }
-    private val Ppl: File by lazy { File(dataFolder.absolutePath + File.separatorChar + "plugins").also { it.mkdirs() } }
+    val Ppl: File by lazy { File(dataFolder.absolutePath + File.separatorChar + "plugins").also { it.mkdirs() } }
+    val PplArc: File by lazy { File(Ppl.absolutePath + File.separatorChar + systemName + File.separatorChar + systemArch).also { it.mkdirs() } }
     val imageDataPath: File by lazy { File(dataFolder.absolutePath + File.separatorChar + ".." + File.separatorChar + "image").also { it.mkdirs() } }
     val recDataPath: File by lazy { File(dataFolder.absolutePath + File.separatorChar + ".." + File.separatorChar + "record").also { it.mkdirs() } }
     val systemName: String by lazy {
@@ -126,10 +117,10 @@ object MiraiNative : KotlinPlugin(
         private fun ByteArray.checksum() = BigInteger(1, MessageDigest.getInstance("MD5").digest(this))
 
         private fun checkNativeLibs() {
-            logger.info("正在加载 Mirai Native Bridge ${dll.absolutePath}")
-            LibraryManager.load(dll.absolutePath)
+            logger.info("正在加载 Mirai Native Bridge ${Pdll.absolutePath}")
+            LibraryManager.load(Pdll.absolutePath)
 
-            lib.listFiles()?.forEach { file ->
+            Plib.listFiles()?.forEach { file ->
                 if (file.absolutePath.endsWith(".dll")) {
                     logger.info("正在加载外部库 " + file.absolutePath)
                     LibraryManager.load(file.absolutePath)
@@ -166,15 +157,9 @@ object MiraiNative : KotlinPlugin(
                 logger.warning("${Pdll.absolutePath} 与 Mirai Native 内置的 CQP.dll 的校验和不同。")
                 logger.warning("如运行时出现问题，请尝试删除 ${Pdll.absolutePath} 并重启 mirai。")
             }
-            copyPlugins()
             initDataDir()
         }
 
-        private fun copyPlugins() {
-            Pdll.copyTo(dll)
-            Plib.copyRecursively(lib)
-            Ppl.copyRecursively(pl)
-        }
 
         private fun File.mkdirsOrExists() = if (exists()) true else mkdirs()
 
@@ -240,7 +225,6 @@ object MiraiNative : KotlinPlugin(
                 dispatcher.cancel()
                 dispatcher[Job]?.join()
             }
-            tmp.deleteRecursively()
         }
 
         fun nativeLaunch(b: suspend CoroutineScope.() -> Unit) = launch(context = dispatcher, block = b)

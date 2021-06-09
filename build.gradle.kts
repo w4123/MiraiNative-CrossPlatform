@@ -1,10 +1,9 @@
 plugins {
-    kotlin("jvm") version "1.4.30"
-    kotlin("plugin.serialization") version "1.4.30"
-    id("com.jfrog.bintray") version "1.8.5"
+    kotlin("jvm") version "1.4.32"
+    kotlin("plugin.serialization") version "1.4.32"
     `maven-publish`
 
-    id("net.mamoe.mirai-console") version "2.5.1"
+    id("net.mamoe.mirai-console") version "2.6.5"
 }
 
 group = "org.itxtech"
@@ -22,10 +21,8 @@ kotlin {
 }
 
 repositories {
-    maven("https://dl.bintray.com/him188moe/mirai")
-    maven("https://dl.bintray.com/mamoe/kotlin-jvm-blocking-bridge")
+    mavenCentral()
     maven("https://maven.aliyun.com/repository/public")
-    maven("https://dl.bintray.com/kotlin/kotlin-eap")
 }
 
 dependencies {
@@ -42,21 +39,6 @@ tasks.named<Jar>("jar") {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
-}
-
-bintray {
-    user = findProperty("buser") as String?
-    key = findProperty("bkey") as String?
-    setPublications("mavenJava")
-    setConfigurations("archives")
-    pkg.apply {
-        repo = "mirai"
-        name = "mirai-native"
-        userOrg = "itxtech"
-        setLicenses("AGPLv3")
-        publicDownloadNumbers = true
-        vcsUrl = vcs
-    }
 }
 
 @Suppress("DEPRECATION")

@@ -34,8 +34,8 @@ import net.mamoe.mirai.console.command.CompositeCommand
 import net.mamoe.mirai.console.util.ConsoleExperimentalApi
 import org.itxtech.mirainative.Bridge
 import org.itxtech.mirainative.MiraiNative
-import org.itxtech.mirainative.MiraiNative.pl
-import org.itxtech.mirainative.MiraiNative.plArc
+import org.itxtech.mirainative.MiraiNative.Ppl
+import org.itxtech.mirainative.MiraiNative.PplArc
 import org.itxtech.mirainative.bridge.NativeBridge
 import org.itxtech.mirainative.plugin.NativePlugin
 import org.itxtech.mirainative.plugin.PluginInfo
@@ -54,12 +54,12 @@ object PluginManager {
             MiraiNative.logger.error("数据文件夹不是一个文件夹！" + MiraiNative.dataFolder.absolutePath)
         } else {
             MiraiNative.nativeLaunch {
-                pl.listFiles()?.forEach { file ->
+                Ppl.listFiles()?.forEach { file ->
                     if (file.isFile && file.absolutePath.endsWith("dll") && !file.absolutePath.endsWith("CQP.dll")) {
                         readPlugin(file)
                     }
                 }
-                plArc.listFiles()?.forEach { file ->
+                PplArc.listFiles()?.forEach { file ->
                     if (file.isFile && file.absolutePath.endsWith("dll") && !file.absolutePath.endsWith("CQP.dll")) {
                         readPlugin(file)
                     }
@@ -91,7 +91,7 @@ object PluginManager {
     }
 
     fun readPluginFromFile(f: String): Boolean {
-        val file = File(pl.absolutePath + File.separatorChar + f)
+        val file = File(Ppl.absolutePath + File.separatorChar + f)
         if (f.endsWith(".dll") && file.isFile && file.exists()) {
             readPlugin(file)
             return true
