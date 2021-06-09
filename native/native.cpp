@@ -183,6 +183,56 @@ JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_exportGlobalSymbol(JN
 #ifndef _WIN32
 	vec_handles.push_back(dlopen(ByteArrayToString(env, file).c_str(), RTLD_LAZY | RTLD_GLOBAL));
 #endif
+#ifdef __ANDROID__
+	string file_path = ByteArrayToString(env, file);
+	file_path = file_path.substr(0, file_path.rfind('/'));
+	string ld_path;
+	void* handle = dlopen("libdl_android.so", RTLD_NOW | RTLD_GLOBAL);
+	void* sym1 = dlsym(RTLD_DEFAULT, "android_get_LD_LIBRARY_PATH");
+	if (sym1 != NULL) 
+	{
+		char buffer[300];
+		typedef void (*Fn)(char*, size_t);
+		Fn android_get_LD_LIBRARY_PATH = reinterpret_cast<Fn>(sym1);
+		(*android_get_LD_LIBRARY_PATH)(buffer, 300);
+		ld_path = buffer;
+	}
+	void* sym2 = dlsym(RTLD_DEFAULT, "android_update_LD_LIBRARY_PATH");
+	if (sym2 != NULL) 
+	{
+		string tmp;
+		for (const auto c : ld_path)
+		{
+			if (c == ':')
+			{
+				if (tmp == file_path)
+				{
+					if (handle) dlclose(handle);
+					return 0;
+				}
+				tmp = "";
+			}
+			else tmp += c;
+		}
+		if (tmp == file_path)
+		{
+			if (handle) dlclose(handle);
+			return 0;
+		}
+		
+		if(!ld_path.empty() && ld_path[ld_path.length() - 1] != ':')
+		{
+			ld_path += ":";
+		}
+		
+		ld_path += file_path;
+		
+		typedef void (*Fn)(const char*);
+		Fn android_update_LD_LIBRARY_PATH = reinterpret_cast<Fn>(sym2);
+		(*android_update_LD_LIBRARY_PATH)(ld_path.c_str());
+	}
+	if (handle) dlclose(handle);
+#endif
 	return 0;
 }
 
