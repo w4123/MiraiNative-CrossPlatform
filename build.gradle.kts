@@ -1,15 +1,13 @@
 plugins {
-    kotlin("jvm") version "1.4.32"
-    kotlin("plugin.serialization") version "1.4.32"
-    `maven-publish`
+    kotlin("jvm") version "1.4.30"
+    kotlin("plugin.serialization") version "1.4.30"
 
     id("net.mamoe.mirai-console") version "2.6.5"
 }
 
 group = "org.itxtech"
-version = "2.0.0-beta.1"
+version = "2.0.1"
 description = "强大的 mirai 原生插件加载器。"
-val vcs = "https://github.com/iTXTech/mirai-native"
 
 kotlin {
     sourceSets {
@@ -26,7 +24,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.1.0")
 }
 
 tasks.named<Jar>("jar") {
@@ -39,31 +37,4 @@ tasks.named<Jar>("jar") {
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
-}
-
-@Suppress("DEPRECATION")
-val sourcesJar by tasks.registering(Jar::class) {
-    classifier = "sources"
-    from(sourceSets["main"].allSource)
-}
-
-publishing {
-    publications {
-        register("mavenJava", MavenPublication::class) {
-            from(components["java"])
-
-            groupId = rootProject.group.toString()
-            this.artifactId = artifactId
-            version = version
-
-            pom.withXml {
-                val root = asNode()
-                root.appendNode("description", description)
-                root.appendNode("name", project.name)
-                root.appendNode("url", vcs)
-                root.children().last()
-            }
-            artifact(sourcesJar.get())
-        }
-    }
 }

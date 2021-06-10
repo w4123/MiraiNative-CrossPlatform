@@ -630,7 +630,7 @@ CQAPI(int32_t, CQ_setGroupCard, 24)(int32_t plugin_id, int64_t group, int64_t me
 
 CQAPI(int32_t, CQ_setGroupKick, 24)(int32_t plugin_id, int64_t group, int64_t member, BOOL reject)
 {
-	return mSetGroupKick(plugin_id, group, member, reject, nullptr);
+	return mSetGroupKick(plugin_id, group, member, reject, "");
 }
 
 CQAPI(int32_t, CQ_setGroupLeave, 16)(int32_t plugin_id, int64_t group, BOOL dismiss)
