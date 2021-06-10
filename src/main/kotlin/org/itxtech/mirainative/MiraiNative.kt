@@ -46,7 +46,7 @@ import java.security.MessageDigest
 import java.util.jar.Manifest
 
 object MiraiNative : KotlinPlugin(
-    JvmPluginDescriptionBuilder("MiraiNative", "2.0.0-beta.1")
+    JvmPluginDescriptionBuilder("MiraiNative", "2.0.1")
         .id("org.itxtech.mirainative")
         .author("iTX Technologies & 溯洄")
         .info("强大的 mirai 原生插件加载器。")
@@ -179,6 +179,8 @@ object MiraiNative : KotlinPlugin(
             arrayOf(
                 "data" + File.separatorChar + type + File.separatorChar,
                 dataFolder.absolutePath + File.separatorChar + ".." + File.separatorChar + type + File.separatorChar,
+                (System.getProperty("java.home") ?: "") + File.separatorChar + "bin" + File.separatorChar + type + File.separatorChar,
+                (System.getProperty("java.home") ?: "") + File.separatorChar + type + File.separatorChar,
                 ""
             ).forEach {
                 val f = File(it + name).absoluteFile
