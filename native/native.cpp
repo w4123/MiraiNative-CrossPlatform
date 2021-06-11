@@ -16,6 +16,9 @@
 #define FALSE 0
 #define TRUE 1
 #endif
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
 #include "org_itxtech_mirainative_Bridge.h"
 #include "native.h"
 
@@ -187,9 +190,12 @@ JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_exportGlobalSymbol(JN
 	string file_path = ByteArrayToString(env, file);
 	file_path = file_path.substr(0, file_path.rfind('/'));
 	string ld_path;
-	void* handle = dlopen("libdl_android.so", RTLD_NOW | RTLD_GLOBAL);
+	void* dl = dlopen("libdl.so", RTLD_NOW | RTLD_GLOBAL);
+	void* dla = dlopen("libdl_android.so", RTLD_NOW | RTLD_GLOBAL);
 	void* sym1 = dlsym(RTLD_DEFAULT, "android_get_LD_LIBRARY_PATH");
-	if (sym1 != NULL) 
+	if (!sym1 && dl) sym1 = dlsym(dl, "android_get_LD_LIBRARY_PATH");
+	if (!sym1 && dla) sym1 = dlsym(dla, "android_get_LD_LIBRARY_PATH");
+	if (sym1 != NULL) 						
 	{
 		char buffer[300];
 		typedef void (*Fn)(char*, size_t);
@@ -197,7 +203,13 @@ JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_exportGlobalSymbol(JN
 		(*android_get_LD_LIBRARY_PATH)(buffer, 300);
 		ld_path = buffer;
 	}
+	else 
+	{
+		__android_log_print(ANDROID_LOG_WARN, "MiraiNative", "android_get_LD_LIBRARY_PATH failed");
+	}
 	void* sym2 = dlsym(RTLD_DEFAULT, "android_update_LD_LIBRARY_PATH");
+	if (!sym2 && dl) sym2 = dlsym(dl, "android_update_LD_LIBRARY_PATH");
+	if (!sym2 && dla) sym2 = dlsym(dla, "android_update_LD_LIBRARY_PATH");
 	if (sym2 != NULL) 
 	{
 		string tmp;
@@ -207,7 +219,8 @@ JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_exportGlobalSymbol(JN
 			{
 				if (tmp == file_path)
 				{
-					if (handle) dlclose(handle);
+					if (dl) dlclose(dl);
+					if (dla) dlclose(dla);
 					return 0;
 				}
 				tmp = "";
@@ -216,7 +229,8 @@ JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_exportGlobalSymbol(JN
 		}
 		if (tmp == file_path)
 		{
-			if (handle) dlclose(handle);
+			if (dl) dlclose(dl);
+			if (dla) dlclose(dla);
 			return 0;
 		}
 		
@@ -231,7 +245,12 @@ JNIEXPORT jint JNICALL Java_org_itxtech_mirainative_Bridge_exportGlobalSymbol(JN
 		Fn android_update_LD_LIBRARY_PATH = reinterpret_cast<Fn>(sym2);
 		(*android_update_LD_LIBRARY_PATH)(ld_path.c_str());
 	}
-	if (handle) dlclose(handle);
+	else
+	{
+		__android_log_print(ANDROID_LOG_WARN, "MiraiNative", "android_update_LD_LIBRARY_PATH failed");
+	}
+	if (dl) dlclose(dl);
+	if (dla) dlclose(dla);
 #endif
 	return 0;
 }
