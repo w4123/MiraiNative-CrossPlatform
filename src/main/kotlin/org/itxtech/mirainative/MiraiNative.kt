@@ -217,6 +217,13 @@ object MiraiNative : KotlinPlugin(
             if (Bot.instances.isNotEmpty() && Bot.instances.first().isOnline) {
                 setBotOnline()
             }
+
+            launch {
+                while (isActive) {
+                    CacheManager.checkCacheLimit(ConfigMan.config.cacheExpiration)
+                    delay(60000L) //1min
+                }
+            }
         }
 
         override fun onDisable() {

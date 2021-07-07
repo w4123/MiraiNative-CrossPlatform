@@ -22,13 +22,14 @@
  *
  */
 
+@file:Suppress("NOTHING_TO_INLINE")
+
 package org.itxtech.mirainative.manager
 
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.update
 import kotlinx.coroutines.launch
 import net.mamoe.mirai.contact.AnonymousMember
-import net.mamoe.mirai.contact.NormalMember
 import net.mamoe.mirai.contact.User
 import net.mamoe.mirai.event.events.BotEvent
 import net.mamoe.mirai.event.events.GroupMessageEvent
@@ -42,34 +43,47 @@ import net.mamoe.mirai.utils.MiraiExperimentalApi
 import org.itxtech.mirainative.MiraiNative
 import java.time.Instant
 
+class CacheWrapper<T>(
+    val obj: T,
+    val creationTime: Long = System.currentTimeMillis()
+)
+
+inline fun <T, K> hashMapWrapperOf() = hashMapOf<T, CacheWrapper<K>>()
+
+inline operator fun <K, V> MutableMap<K, CacheWrapper<V>>.set(key: K, value: V) {
+    put(key, CacheWrapper(value))
+}
+
+inline fun <K, V> MutableMap<K, CacheWrapper<V>>.getObj(key: K): V? = get(key)?.obj
+
+inline fun <K, V> MutableMap<K, CacheWrapper<V>>.checkExpiration(exp: Int) {
+    values.removeIf { it.creationTime + exp >= System.currentTimeMillis() }
+}
+
 @OptIn(MiraiExperimentalApi::class)
 object CacheManager {
-    private val msgCache = hashMapOf<Int, MessageSource>()
-    private val evCache = hashMapOf<Int, BotEvent>()
-    private val senders = hashMapOf<Long, User>()
-    private val anonymousMembers = hashMapOf<Long, HashMap<String, AnonymousMember>>()
-    private val records = hashMapOf<String, Voice>()
+    private val msgCache = hashMapWrapperOf<Int, MessageSource>()
+    private val evCache = hashMapWrapperOf<Int, BotEvent>()
+    private val senders = hashMapWrapperOf<Long, User>()
+    private val anonymousMembers = hashMapOf<Long, HashMap<String, CacheWrapper<AnonymousMember>>>()
+    private val records = hashMapWrapperOf<String, Voice>()
     private val internalId = atomic(0)
-    private val internalClearCacheId = atomic(0)
+
+    fun checkCacheLimit(exp: Int) {
+        msgCache.checkExpiration(exp)
+        evCache.checkExpiration(exp)
+        senders.checkExpiration(exp)
+        records.checkExpiration(exp)
+        anonymousMembers.forEach { it.value.checkExpiration(exp) }
+    }
 
     fun nextId() = internalId.getAndIncrement()
 
     fun cacheEvent(event: BotEvent, id: Int = nextId()) = id.apply { evCache[this] = event }.toString()
 
-    fun getEvent(id: String) = evCache[id.toInt()]?.also { evCache.remove(id.toInt()) }
+    fun getEvent(id: String): BotEvent? = evCache.getObj(id.toInt()).also { evCache.remove(id.toInt()) }
 
     fun cacheMessage(source: MessageSource, id: Int = nextId(), chain: MessageChain? = null): Int {
-        var currClearCacheId = internalClearCacheId.value
-        while (currClearCacheId < id) {
-            val sendTime = msgCache[currClearCacheId]?.time
-            if (sendTime != null) {
-                if (Instant.now().epochSecond - sendTime > 3600) {
-                    msgCache.remove(currClearCacheId)
-                } else break;
-            }
-            currClearCacheId++
-        }
-        internalClearCacheId.update{currClearCacheId}
         msgCache[id] = source
         chain?.forEach {
             if (it is Voice) {
@@ -97,7 +111,7 @@ object CacheManager {
     }
 
     fun recall(id: Int): Boolean {
-        val message = msgCache[id] ?: return false
+        val message = msgCache.getObj(id) ?: return false
         msgCache.remove(id)
         MiraiNative.launch {
             message.recall()
@@ -105,12 +119,12 @@ object CacheManager {
         return true
     }
 
-    fun getMessage(id: Int) = msgCache[id]
+    fun getMessage(id: Int): MessageSource? = msgCache.getObj(id)
 
-    fun getRecord(name: String) = records[name.replace(".mnrec", "")]
+    fun getRecord(name: String): Voice? = records.getObj(name.replace(".mnrec", ""))
 
     fun findUser(id: Long): User? {
-        var member = MiraiNative.bot.getFriend(id) ?: senders[id]
+        var member = MiraiNative.bot.getFriend(id) ?: senders.getObj(id)
         if (member == null) {
             member = MiraiNative.bot.strangers[id]
         }
@@ -124,7 +138,7 @@ object CacheManager {
         return member
     }
 
-    fun findAnonymousMember(group: Long, id: String): AnonymousMember? = anonymousMembers[group]?.get(id)
+    fun findAnonymousMember(group: Long, id: String): AnonymousMember? = anonymousMembers[group]?.getObj(id)
 
     fun clear() {
         msgCache.clear()
