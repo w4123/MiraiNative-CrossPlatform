@@ -140,23 +140,26 @@ object MiraiNative : KotlinPlugin(
         }
 
         override fun PluginComponentStorage.onLoad() {
-            var nativeLib = getResourceAsStream("CQP.windows.i386.dll")!!;
+            var nativeLib : InputStream
             try {
                 nativeLib = getResourceAsStream("CQP.$systemName.$systemArch.dll")!!
             } catch(e : NullPointerException) {
                 logger.warning("当前运行时环境可能不与 Mirai Native 兼容。")
                 logger.warning("如果您正在开发或调试其他环境下的 Mirai Native，请忽略此警告。")
+                nativeLib = getResourceAsStream("CQP.android.aarch64.dll")!!
             }
 
+            val libData = nativeLib.readBytes()
+            nativeLib.close()
+
             if (!Pdll.exists()) {
-                logger.error("找不到 ${Pdll.absolutePath}，写出自带的 CQP.dll。")
-                val cqp = FileOutputStream(Pdll)
-                nativeLib.copyTo(cqp)
-                cqp.close()
-            } else if (nativeLib.readBytes().checksum() != Pdll.readBytes().checksum()) {
-                logger.warning("${Pdll.absolutePath} 与 Mirai Native 内置的 CQP.dll 的校验和不同。")
-                logger.warning("如运行时出现问题，请尝试删除 ${Pdll.absolutePath} 并重启 mirai。")
+                logger.info("找不到 ${Pdll.absolutePath}，写出自带的 CQP.dll。")
+                Pdll.writeBytes(libData)
+            } else if (libData.checksum() != Pdll.readBytes().checksum()) {
+                logger.warning("${Pdll.absolutePath} 与 Mirai Native 内置的 CQP.dll 的校验和不同。已用内置版本替换。")
+                Pdll.writeBytes(libData)
             }
+
             initDataDir()
         }
 
