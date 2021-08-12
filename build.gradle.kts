@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "org.itxtech"
-version = "2.0.2"
+version = "2.0.2-cp"
 description = "强大的 mirai 原生插件加载器。"
 
 kotlin {

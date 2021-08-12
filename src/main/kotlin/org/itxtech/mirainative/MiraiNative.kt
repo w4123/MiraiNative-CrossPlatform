@@ -46,7 +46,7 @@ import java.security.MessageDigest
 import java.util.jar.Manifest
 
 object MiraiNative : KotlinPlugin(
-    JvmPluginDescriptionBuilder("MiraiNativeCrossPlatform", "2.0.2")
+    JvmPluginDescriptionBuilder("MiraiNative", "2.0.2-cp")
         .id("org.itxtech.mirainative")
         .author("iTX Technologies & 溯洄")
         .info("强大的 mirai 原生插件加载器。")
