@@ -27,7 +27,6 @@
 package org.itxtech.mirainative.manager
 
 import kotlinx.atomicfu.atomic
-import kotlinx.atomicfu.update
 import kotlinx.coroutines.launch
 import net.mamoe.mirai.contact.AnonymousMember
 import net.mamoe.mirai.contact.User
@@ -41,7 +40,6 @@ import net.mamoe.mirai.message.data.Voice
 import net.mamoe.mirai.message.data.source
 import net.mamoe.mirai.utils.MiraiExperimentalApi
 import org.itxtech.mirainative.MiraiNative
-import java.time.Instant
 
 class CacheWrapper<T>(
     val obj: T,
