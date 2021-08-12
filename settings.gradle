@@ -1,6 +1,7 @@
 pluginManagement {
     repositories {
         mavenCentral()
+        maven { url 'https://maven.aliyun.com/repository/public' }
         maven { url 'https://plugins.gradle.org/m2/' }
     }
 }
