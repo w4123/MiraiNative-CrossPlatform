@@ -26,9 +26,9 @@ package org.itxtech.mirainative.message
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import net.mamoe.mirai.contact.AudioSupported
 import net.mamoe.mirai.contact.Contact
 import net.mamoe.mirai.contact.Group
-import net.mamoe.mirai.contact.VoiceSupported
 import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.message.data.PokeMessage.Key.ChuoYiChuo
 import net.mamoe.mirai.utils.ExternalResource.Companion.toExternalResource
@@ -175,20 +175,20 @@ object ChainCodeConverter {
                     return SimpleServiceMessage(args["id"]!!.toInt(), args["data"]!!)
                 }
                 "record" -> {
-                    var rec: Voice? = null
-                    if (contact is VoiceSupported) {
+                    var rec: Audio? = null
+                    if (contact is AudioSupported) {
                         if (args.containsKey("file")) {
                             if (args["file"]!!.endsWith(".mnrec")) {
                                 rec = CacheManager.getRecord(args["file"]!!)
                             } else {
                                 MiraiNative.getDataFile("record", args["file"]!!)?.use {
-                                    rec = contact.uploadVoice(it.toExternalResource())
+                                    rec = contact.uploadAudio(it.toExternalResource())
                                 }
                             }
                         } else if (args.containsKey("url")) {
                             withContext(Dispatchers.IO) {
                                 URL(args["url"]!!).openStream().use {
-                                    rec = contact.uploadVoice(it.toExternalResource())
+                                    rec = contact.uploadAudio(it.toExternalResource())
                                 }
                             }
                         }
@@ -228,7 +228,7 @@ object ChainCodeConverter {
                         else -> "[CQ:rich,data=$content]" // Which is impossible
                     }
                 }
-                is Voice -> "[CQ:record,file=${it.fileName}.mnrec]"
+                is Audio -> "[CQ:record,file=${it.filename}.mnrec]"
                 is PokeMessage -> "[CQ:poke,id=${it.id},type=${it.pokeType},name=${it.name}]"
                 is FlashImage -> "[CQ:image,file=${it.image.imageId}.mning,type=flash]"
                 is MarketFace -> "[CQ:bface,id=${it.id},name=${it.name}]"

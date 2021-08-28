@@ -43,7 +43,7 @@ import net.mamoe.mirai.contact.getMember
 import net.mamoe.mirai.event.events.BotInvitedJoinGroupRequestEvent
 import net.mamoe.mirai.event.events.MemberJoinRequestEvent
 import net.mamoe.mirai.event.events.NewFriendRequestEvent
-import net.mamoe.mirai.message.data.Image
+import net.mamoe.mirai.message.data.*
 import net.mamoe.mirai.message.data.Image.Key.queryUrl
 import net.mamoe.mirai.utils.MiraiExperimentalApi
 import org.itxtech.mirainative.Bridge
@@ -339,18 +339,16 @@ object MiraiBridge {
         call("CQ_getRecordV2", pluginId, "", "Error occurred when plugin %0 downloading record $record") {
             return runBlocking {
                 val rec = CacheManager.getRecord(record.replace(".mnrec", ""))
-                if (rec != null) {
+                if (rec != null && rec is OnlineAudio) {
                     val file = File(
                         MiraiNative.recDataPath.absolutePath + File.separatorChar +
-                                BigInteger(1, rec.md5).toString(16)
+                                BigInteger(1, rec.fileMd5).toString(16)
                                     .padStart(32, '0') + ".silk"
                     )
-                    if (rec.url != null) {
-                        val response = client.get<HttpResponse>(rec.url!!)
-                        if (response.status.isSuccess()) {
-                            response.content.copyAndClose(file.writeChannel())
-                            return@runBlocking file.absolutePath
-                        }
+                    val response = client.get<HttpResponse>(rec.urlForDownload)
+                    if (response.status.isSuccess()) {
+                        response.content.copyAndClose(file.writeChannel())
+                        return@runBlocking file.absolutePath
                     }
                 }
                 return@runBlocking ""
