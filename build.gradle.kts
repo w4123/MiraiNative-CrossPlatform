@@ -2,11 +2,11 @@ plugins {
     kotlin("jvm") version "1.5.10"
     kotlin("plugin.serialization") version "1.5.10"
 
-    id("net.mamoe.mirai-console") version "2.7-RC"
+    id("net.mamoe.mirai-console") version "2.7.0"
 }
 
 group = "org.itxtech"
-version = "2.0.2-cp"
+version = "2.0.3-cp"
 description = "强大的 mirai 原生插件加载器。"
 
 kotlin {
