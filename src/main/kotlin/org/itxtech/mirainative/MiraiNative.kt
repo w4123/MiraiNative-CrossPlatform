@@ -69,6 +69,8 @@ object MiraiNative : KotlinPlugin(
         } catch(e : ClassNotFoundException) {
             if (name.indexOf("win") >= 0 || name.indexOf("Win") >= 0) {
                 "windows"
+            } else if (name.indexOf("ios") >= 0 || name.indexOf("iOS") >= 0) {
+                "ios"
             } else if (name.indexOf("mac") >= 0 || name.indexOf("Mac") >= 0) {
                 "macos"
             } else if (name.indexOf("linux") >= 0 || name.indexOf("Linux") >= 0) {
@@ -85,6 +87,8 @@ object MiraiNative : KotlinPlugin(
         logger.info("当前架构: $arch")
         when (arch) {
             "i386" -> "i386"
+            "i486" -> "i386"
+            "i586" -> "i386"
             "i686" -> "i386"
             "x86" -> "i386"
             "x86_64" -> "amd64"
@@ -92,8 +96,11 @@ object MiraiNative : KotlinPlugin(
             "amd64" -> "amd64"
             "arm" -> "arm"
             "armv7l" -> "arm"
+            "armv7a" -> "arm"
+            "armhf" -> "arm"
             "arm64" -> "aarch64"
             "armv8l" -> "aarch64"
+            "armv8a" -> "aarch64"
             "aarch64" -> "aarch64"
             else -> arch
         }
@@ -163,7 +170,7 @@ object MiraiNative : KotlinPlugin(
         if (!Pdll.exists()) {
             logger.info("找不到 ${Pdll.absolutePath}，写出自带的 CQP.dll。")
             Pdll.writeBytes(libData)
-        } else if (libData.checksum() != Pdll.readBytes().checksum()) {
+        } else if (System.getProperty("mirai.native.cqp.check.disable") == null && libData.checksum() != Pdll.readBytes().checksum()) {
             logger.warning("${Pdll.absolutePath} 与 Mirai Native 内置的 CQP.dll 的校验和不同。已用内置版本替换。")
             Pdll.writeBytes(libData)
         }
